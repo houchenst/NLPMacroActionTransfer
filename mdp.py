@@ -15,7 +15,7 @@ class GridWorldCarry():
     This task is similar to GridWorld, except it involves carrying/pushing an object to a target    
     '''
 
-    def __init__(self, obstacles, object_location, agent_location, goal_location, board_size=7, visual_file="F:\Brown\cs2951x\stateview.png"):
+    def __init__(self, obstacles, object_location, agent_location, goal_location, board_size=7, visual_file="F:\Brown\cs2951x\stateview.png", action_success_prob=0.95):
         '''
         obstacles       - tuple indices of obstacles on the board
         object_location - the location of the object on the board
@@ -49,6 +49,8 @@ class GridWorldCarry():
 
         self.state_space = self.board_size**4 * 32
         self.action_space = 10
+        #Probability of a stochastic action succeeding
+        self.action_success_prob = action_success_prob
 
 
     def get_state_number(self, agent_location, object_location, agent_orientation, forelimbs, rear_left, rear_right):
@@ -101,49 +103,6 @@ class GridWorldCarry():
         '''
         agent_location, object_location, agent_orientation, forelimbs, rear_left, rear_right = self.get_state_components(state_number)
         # print(f"Transition agent location: {agent_location}")
-
-        #Probability of a stochastic action succeeding
-        action_success_prob = 0.95
-        
-        
-
-        # def move_agent_and_object(agent_location, object_location, forelimbs_position, orientation, movement_direction, stochasticity=0.9):
-        #     '''
-        #     A subroutine for transitioning the agent and object positions which considers the movement direction, obstacles, success probabilitly, and whether the object is grasped
-        #     '''
-        #     action_success = np.random.rand() < stochasticity
-            
-        #     # If the stochastic action is unsuccessful, return the same positions
-        #     if not action_success:
-        #         return agent_location, object_location
-            
-        #     # If the stochastic action is successful, try to move the agent/object
-        #     object_is_grasped = self.object_grasped(object_location, agent_location, forelimbs_position, orientation)
-        #     new_positions = []
-        #     new_positions.append(self.move_position(agent_location, movement_direction))
-        #     if object_is_grasped:
-        #         new_positions.append(self.move_position(object_location, movement_direction))
-        #     #This case handles object pushing
-        #     elif forelimbs_position:
-        #         if new_positions[0] == object_location:
-        #             # the forelimbs have collided with the object. The object should be pushed forward unless it is on the edge of the board or bordering an obstacle.
-        #             push_location = self.move_position(object_location, movement_direction)
-        #             if push_location[0] >= 0 and push_location[0] < self.board_size and push_location[1] >= 0 and push_location[1] < self.board_size and not push_location in self.obstacles:
-        #                 # object is pushed
-        #                 return new_positions[0], push_location
-        #             else:
-        #                 # movement is blocked
-        #                 return agent_location, object_location
-        #     # In this case either the agent or object moved off of the board
-        #     if None in new_positions:
-        #         return agent_location, object_location
-        #     # In this case either the agent or object was moved into one of the obstacles
-        #     for new_pos in new_positions:
-        #         if new_pos in self.obstacles:
-        #             return agent_location, object_location
-
-        #     # return the positions after the successful move
-        #     return self.move_position(agent_location, movement_direction), self.move_position(object_location, movement_direction) if object_is_grasped else object_location
 
         def move_agent_and_object(agent_location, object_location, forelimbs_position, orientation, movement_direction, stochasticity=0.9):
             '''
@@ -242,13 +201,13 @@ class GridWorldCarry():
         #rear legs both up (STOCHASTIC)
         if action == 4:
             if not rear_left and not rear_right:
-                    agent_location, object_location = move_agent_and_object(agent_location, object_location, forelimbs, agent_orientation, (agent_orientation-2)%4, stochasticity=action_success_prob)
+                    agent_location, object_location = move_agent_and_object(agent_location, object_location, forelimbs, agent_orientation, (agent_orientation-2)%4, stochasticity=self.action_success_prob)
             rear_left = 1
             rear_right = 1
         #rear legs both down (STOCHASTIC)
         if action == 5:
             if rear_left and rear_right:
-                agent_location, object_location = move_agent_and_object(agent_location, object_location, forelimbs, agent_orientation, agent_orientation, stochasticity=action_success_prob)
+                agent_location, object_location = move_agent_and_object(agent_location, object_location, forelimbs, agent_orientation, agent_orientation, stochasticity=self.action_success_prob)
             rear_left = 0
             rear_right = 0
         #rear legs both CW (STOCHASTIC)
@@ -266,7 +225,7 @@ class GridWorldCarry():
         #forelimbs up (STOCHASTIC)
         if action == 8:
             forelimbs = 1
-            object_location = forelimb_grasp(agent_location, agent_orientation, object_location, stochasticity=action_success_prob)
+            object_location = forelimb_grasp(agent_location, agent_orientation, object_location, stochasticity=self.action_success_prob)
         #forelimbs down (DETERMINISTIC)
         if action == 9:
             forelimbs = 0
