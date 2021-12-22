@@ -108,6 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("--all", action="store_true", help="Run all parts of the experiment")
 
     parser.add_argument("--macro-keyword", type=str, help="Visualize the best macro for the keyword that is passed")
+    parser.add_argument("--task-number", type=int, default=1, help="The task to train on or graph")
     args = parser.parse_args()
 
     if args.all:
@@ -218,7 +219,7 @@ if __name__ == "__main__":
         n_macros_to_add = [1, 3, 5, 10, 30, 50]
         # n_macros_to_add = [30]
 
-        task_number = 1
+        task_number = args.task_number
         task_number -=1
 
         for task_fn, task_name in zip([tasks.all_tasks[task_number]], [tasks.task_names[task_number]]):
@@ -227,33 +228,33 @@ if __name__ == "__main__":
             macro_type = "no_macros"
             train_task_on_macro_set(task_fn, task_name, [], macro_type, n_trials, [0])
 
-            # # Train on the task specific macros
-            # macro_type = "task_specific"
-            # task_specific_macro_file = os.path.join(experiment_directory, "macros", f"{task_name}_macros.npy")
-            # task_specific_macros = np.load(task_specific_macro_file, allow_pickle=True)
-            # # 30 macro cutoff for task-specific
-            # task_specific_n_macros_to_add = [x for x in n_macros_to_add if x < 30]
-            # # train_task_on_macro_set(task_fn, task_name, task_specific_macros, macro_type, n_trials, task_specific_n_macros_to_add)
+            # Train on the task specific macros
+            macro_type = "task_specific"
+            task_specific_macro_file = os.path.join(experiment_directory, "macros", f"{task_name}_macros.npy")
+            task_specific_macros = np.load(task_specific_macro_file, allow_pickle=True)
+            # 30 macro cutoff for task-specific
+            task_specific_n_macros_to_add = [x for x in n_macros_to_add if x < 30]
+            # train_task_on_macro_set(task_fn, task_name, task_specific_macros, macro_type, n_trials, task_specific_n_macros_to_add)
 
 
-            # # Train on the full set of macros
-            # macro_type = "full_set"
-            # all_macros_file = os.path.join(experiment_directory, "macros", "all_macros.npy")
-            # all_macros = np.load(all_macros_file, allow_pickle=True)
-            # train_task_on_macro_set(task_fn, task_name, all_macros, macro_type, n_trials, n_macros_to_add)
+            # Train on the full set of macros
+            macro_type = "full_set"
+            all_macros_file = os.path.join(experiment_directory, "macros", "all_macros.npy")
+            all_macros = np.load(all_macros_file, allow_pickle=True)
+            train_task_on_macro_set(task_fn, task_name, all_macros, macro_type, n_trials, n_macros_to_add)
 
 
-            # # # Train on the macros that are predicted to be useful
-            # macro_type = "predicted_useful"
-            # predicted_macro_file = os.path.join(experiment_directory, "macros", f"{task_name}_predicted_macros.npy")
-            # predicted_macros = np.load(predicted_macro_file, allow_pickle=True)
-            # train_task_on_macro_set(task_fn, task_name, predicted_macros, macro_type, n_trials, n_macros_to_add)
+            # # Train on the macros that are predicted to be useful
+            macro_type = "predicted_useful"
+            predicted_macro_file = os.path.join(experiment_directory, "macros", f"{task_name}_predicted_macros.npy")
+            predicted_macros = np.load(predicted_macro_file, allow_pickle=True)
+            train_task_on_macro_set(task_fn, task_name, predicted_macros, macro_type, n_trials, n_macros_to_add)
 
 
     if args.graphs:
         graph_dir = os.path.join(experiment_directory, "graphs")
         n_macros_to_add = [1, 3, 5, 10, 30,50]
-        task_number = 1
+        task_number = args.task_number
         task_number -= 1
         for task_fn, task_name in zip([tasks.all_tasks[task_number]], [tasks.task_names[task_number]]):
             for macro_type in ["task_specific", "full_set", "predicted_useful"]:
@@ -373,7 +374,7 @@ if __name__ == "__main__":
         best_macros, macro_ordering = predict_macros(model, args.macro_keyword, macros_dict, word2token)
         print(best_macros)
 
-        macro_number = 14
+        macro_number = 0
         macro_viz_path = os.path.join(experiment_directory, "macro_viz", f"macro_keyword_{macro_number}")
         os.mkdir(macro_viz_path)
         view_macro(list(best_macros[14]), args.macro_keyword, {}, write_dir=macro_viz_path)
