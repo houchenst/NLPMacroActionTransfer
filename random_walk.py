@@ -18,7 +18,7 @@ if __name__ == "__main__":
         i=0
         while i < max_actions:
             action = randint(0, 10)
-            new_state_number = task.transition(task.state_number, action)
+            new_state_number, _, _ = task.transition(task.state_number, action)
             assert(task.is_valid_state(new_state_number))
             task.set_state(new_state_number)
             task.render_state(task.state_number)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
                 valid_states += 1
                 for a in range(n_actions):
                     task.set_state(sn)
-                    new_state_number = task.transition(sn, a)
+                    new_state_number, _, _ = task.transition(sn, a)
                     if not task.is_valid_state(new_state_number):
                         task.render_state(new_state_number)
                         assert(task.is_valid_state(new_state_number))

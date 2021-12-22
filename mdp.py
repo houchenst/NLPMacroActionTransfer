@@ -15,7 +15,7 @@ class GridWorldCarry():
     This task is similar to GridWorld, except it involves carrying/pushing an object to a target    
     '''
 
-    def __init__(self, obstacles, object_location, agent_location, goal_location, board_size=7, visual_file="F:\Brown\cs2951x\stateview.png", action_success_prob=0.95):
+    def __init__(self, obstacles, object_location, agent_location, goal_location, board_size=7, visual_file="F:\Brown\cs2951x\stateview.png", action_success_prob=0.95, available_macros={}, macro_visualization=False):
         '''
         obstacles       - tuple indices of obstacles on the board
         object_location - the location of the object on the board
@@ -26,14 +26,20 @@ class GridWorldCarry():
         assert(agent_location not in obstacles)
         assert(agent_location[0] >= 0 and agent_location[0] < board_size)
         assert(agent_location[1] >= 0 and agent_location[1] < board_size)
-        # check that the object isn't on an obstacle or outside the map
-        assert(object_location not in obstacles)
-        assert(object_location[0] >= 0 and object_location[0] < board_size)
-        assert(object_location[1] >= 0 and object_location[1] < board_size)
-        # check that the goal isn't on an obstacle or outside the map
-        assert(goal_location not in obstacles)
-        assert(goal_location[0] >= 0 and goal_location[0] < board_size)
-        assert(goal_location[1] >= 0 and goal_location[1] < board_size)
+
+        self.macro_visualization = macro_visualization
+        if not macro_visualization:
+            # check that the object isn't on an obstacle or outside the map
+            assert(object_location not in obstacles)
+            assert(object_location[0] >= 0 and object_location[0] < board_size)
+            assert(object_location[1] >= 0 and object_location[1] < board_size)
+            # check that the goal isn't on an obstacle or outside the map
+            assert(goal_location not in obstacles)
+            assert(goal_location[0] >= 0 and goal_location[0] < board_size)
+            assert(goal_location[1] >= 0 and goal_location[1] < board_size)
+        else:
+            object_location = (-1,-1)
+            goal_location = (-1,-1)
 
         self.obstacles = set(obstacles)
         self.goal_location = goal_location
@@ -48,9 +54,24 @@ class GridWorldCarry():
         self.visual_file = visual_file
 
         self.state_space = self.board_size**4 * 32
-        self.action_space = 10
+        self.action_space = 10 + len(available_macros)
         #Probability of a stochastic action succeeding
         self.action_success_prob = action_success_prob
+
+        # variables used for macro execution
+        # self.curr_sequence = []
+        self.available_macros = available_macros
+
+        for macro in self.available_macros:
+            assert(macro >= 10)
+
+    def add_macros(self, new_macros):
+        self.available_macros.update(new_macros)
+        self.action_space = 10 + len(self.available_macros)
+
+    def clear_macros(self):
+        self.available_macros = {}
+        self.action_space = 10
 
 
     def get_state_number(self, agent_location, object_location, agent_orientation, forelimbs, rear_left, rear_right):
@@ -229,9 +250,38 @@ class GridWorldCarry():
         #forelimbs down (DETERMINISTIC)
         if action == 9:
             forelimbs = 0
+        # macro action
+        if action > 9:
+            # state_number, new_reward, goal_met = self.enter_macro(action, state_number)
+            return self.enter_macro(action, state_number)
 
         new_state_number = self.get_state_number(agent_location, object_location, agent_orientation, forelimbs, rear_left, rear_right)
-        return new_state_number
+        new_reward = self.reward(new_state_number)
+        goal_met = new_reward > 0
+        return new_state_number, new_reward, goal_met
+
+    # def in_macro(self):
+    #     return len(self.curr_sequence) > 0
+
+    def enter_macro(self, macro, state_number):
+        assert(macro in self.available_macros)
+        action_sequence = [x for x in self.available_macros[macro]]
+        # reverse so we can use the sequence as a stack
+        action_sequence.reverse()
+        return self.execute_macro(state_number, action_sequence)
+
+    def execute_macro(self, state_number, action_sequence):
+        total_reward = 0
+        goal_met = False
+        while len(action_sequence) > 0:
+            next_action = action_sequence.pop()
+            state_number, new_reward, goal_met = self.transition(state_number, next_action)
+            # new_reward = self.reward(state_number)
+            total_reward += new_reward
+            if goal_met:
+                break
+            # print(f"In macro, taking action {next_action} and transitioning to state {state_number}")
+        return state_number, total_reward, goal_met
 
     def reward(self, state):
         '''
@@ -350,14 +400,14 @@ class GridWorldCarry():
                     d.append(r)
 
                 # see if we should display the target location
-                if (i,j) == self.goal_location:
+                if (i,j) == self.goal_location and not self.macro_visualization:
                     r = draw.Rectangle((i+0.2)*cell_size+1,(j+0.2)*cell_size+1,0.6*cell_size,0.6*cell_size, stroke_width=4, stroke='green', fill='#fff')
                     d.append(r)
                     r = draw.Rectangle((i+0.35)*cell_size+1,(j+0.35)*cell_size+1,0.3*cell_size,0.3*cell_size, fill='green')
                     d.append(r)
 
                 # see if we should display the object
-                if (i,j) == object_location:
+                if (i,j) == object_location and not self.macro_visualization:
                     c = draw.Circle((i+0.5)*cell_size+1, (j+0.5)*cell_size+1, cell_size/2-4, fill="red")
                     d.append(c)
 
@@ -462,7 +512,8 @@ class GridWorldCarry():
 
 
 if __name__ == "__main__":
-    task = GridWorldCarry([(0,0), (1,2), (5,6), (4,2)], (2,2), (0,3), (3,0), board_size=7)
+    # task = GridWorldCarry([(0,0), (1,2), (5,6), (4,2)], (2,2), (0,3), (3,0), board_size=7)
+    task = GridWorldCarry([(0,0), (1,2), (4,2)], (2,2), (7,6), (3,0), board_size=8, available_macros={10: [5, 2, 0, 5, 2, 0, 5, 0, 4, 5]})
     task.render_state(task.state_number)
     task.show()
 
@@ -479,7 +530,7 @@ if __name__ == "__main__":
                 action = int(x)
             except:
                 continue
-            if not action in {0,1,2,3,4,5,6,7,8,9}:
+            if not action in set(range(task.action_space)):
                 continue
             else:
                 new_state_number = task.transition(task.state_number, action)
